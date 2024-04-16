@@ -8,7 +8,7 @@ class CrossingTrain extends RiveComponent {
 
   CrossingTrain({required this.crossingTrainArtboard,required super.position})
       : super(artboard: crossingTrainArtboard, priority: 3) {
-    debugMode = true;
+    // debugMode = true;
     add(RectangleHitbox(
         size: Vector2(
             crossingTrainArtboard.width, crossingTrainArtboard.height)));

@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame_rive/flame_rive.dart';
 import 'package:game/config.dart';
 import 'package:game/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Train extends RiveComponent
     with CollisionCallbacks, HasGameRef<TrainGame> {
@@ -15,10 +16,12 @@ class Train extends RiveComponent
 
   Train({required this.trainArtboard})
       : super(artboard: trainArtboard, priority: 3) {
-    debugMode = true;
+    // debugMode = true;
   }
+  
   @override
   Future<void> onLoad() async {
+    
     hitBox = RectangleHitbox(
       anchor: Anchor.center,
       size: Vector2(120, 140),
@@ -53,12 +56,15 @@ class Train extends RiveComponent
 
   @override
   void onCollisionStart(
-      Set<Vector2> intersectionPoints, PositionComponent other) {
+    Set<Vector2> intersectionPoints, PositionComponent other) async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? score = prefs.getInt("highScore");
+    if(score==null || score < TrainGame.score){
+        prefs.setInt("highScore", TrainGame.score);
+    }
     game.pauseEngine();
     game.overlays.add("gameOverMenu");
     print("Hit");
     super.onCollisionStart(intersectionPoints, other);
   }
-
-
 }

@@ -12,15 +12,16 @@ import 'package:game/config.dart';
 import 'package:game/crossing_train.dart';
 import 'package:game/enemy.dart';
 import 'package:game/main_menu.dart';
+import 'package:game/score.dart';
 import 'package:game/track.dart';
 import 'package:game/train.dart';
 import 'package:game/world.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // SharedPreferences prefs = await SharedPreferences.getInstance();
-  // int? highScore = prefs.getInt('HighScore');
-
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  int? highScore = prefs.getInt("highScore");
   Flame.device.fullScreen();
   Flame.device.setPortrait();
   RiveFile riveFile = await RiveFile.asset('assets/rive/final.riv');
@@ -32,13 +33,46 @@ void main() async {
       overlayBuilderMap: {
         'MainMenu': (context, game) {
           game.pauseEngine();
-          return MainMenu(game: game);
+          return MainMenu(game: game, highScore: highScore);
         },
         'gameOverMenu': (context, game) {
-          return Center(child: Text('Game Over'));
+          return Material(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Game Over',
+                    style: TextStyle(fontSize: 24),
+                  ),
+                  Text(
+                    "Your Score : ${TrainGame.score}",
+                    style: TextStyle(fontSize: 24),
+                  ),
+                  SizedBox(
+                    height: 130,
+                    width: 130,
+                    child: ElevatedButton(
+                        style: ButtonStyle(
+                            shape: MaterialStateProperty.all<
+                                    RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(100),
+                                    side: BorderSide(color: Colors.red)))),
+                        onPressed: () {
+                          game.resumeEngine();
+                          TrainGame.resetGame();
+                          game.overlays.remove('gameOverMenu');
+                        },
+                        child: Text("Play Again")),
+                  ),
+                ],
+              ),
+            ),
+          );
         },
       },
-      initialActiveOverlays: ['MainMenu'],
+      initialActiveOverlays: const ['MainMenu'],
     ),
   );
 }
@@ -47,12 +81,12 @@ class TrainGame extends FlameGame
     with HorizontalDragDetector, HasCollisionDetection {
   final RiveFile riveFile;
   late World myWorld;
-  late Train train;
+  static late Train train;
   late Track track;
   late CrossingTrain crossingTrain1;
   late CrossingTrain crossingTrain2;
   late Enemy enemy;
-  int score = 0;
+  static int score = 0;
   TrainGame({required this.riveFile})
       : super(
             world: MyWorld(
@@ -69,11 +103,10 @@ class TrainGame extends FlameGame
   @override
   FutureOr<void> onLoad() {
     myWorld.addAll([
-      TextComponent(
-        text: 'Score : $score',
-        position: Vector2.all(100),
-        priority: 10,
-      ),
+      ScoreBoard()
+        ..anchor = Anchor.center
+        ..position = Vector2(280, -1100)
+        ..priority = 10,
       Track(
         trackArtboard: riveFile.artboardByName('Track')!.instance(),
       )..anchor = Anchor.center,
@@ -197,7 +230,7 @@ class TrainGame extends FlameGame
     super.onHorizontalDragEnd(info);
   }
 
-  void resetGame() {
+  static void resetGame() {
     train.position = Vector2(0, 800);
   }
 }
